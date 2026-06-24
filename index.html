@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAGNET — Waitlist</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:        #777;
+      --accent-bright: #d4c5a9;
+      --accent-bg:     #222;
+      --accent-border: #484848;
+      --card-bg:       #242424;
+      --input-bg:      #1b1b1b;
+      --border:        #2e2e2e;
+      --border-mid:    #333;
+      --text-head:     #f0e6d3;
+      --text-body:     #888;
+      --text-opt:      #999;
+      --text-label:    #555;
+      --text-selected: #d0d0d0;
+    }
+
+    body {
+      background: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 32px 16px;
+      position: relative;
+    }
+
+    /* Configuration Panel Styling */
+    .config-trigger {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #242424;
+      border: 1px solid var(--border);
+      color: var(--text-body);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    .config-trigger:hover {
+      border-color: var(--accent-bright);
+      color: var(--text-head);
+    }
+    .config-trigger svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .config-panel {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 320px;
+      width: calc(100% - 32px);
+      position: absolute;
+      top: 60px;
+      right: 16px;
+      z-index: 20;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .config-panel.visible {
+      display: block;
+    }
+    .config-panel h3 {
+      font-size: 13px;
+      color: var(--text-head);
+      margin-bottom: 8px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .config-panel p {
+      font-size: 11px;
+      color: var(--text-body);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .config-panel input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #ccc;
+      font-size: 12px;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .config-panel input:focus {
+      border-color: var(--accent-bright);
+    }
+    .config-panel .save-btn {
+      width: 100%;
+      background: var(--accent-bright);
+      color: #1a1a1a;
+      border: none;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Core Card */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 36px 36px 32px;
+      max-width: 580px;
+      width: 100%;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .icon { width: 52px; height: 42px; margin-bottom: 22px; }
+
+    .card h1 {
+      font-size: 25px;
+      font-weight: 700;
+      color: var(--text-head);
+      line-height: 1.25;
+      margin-bottom: 10px;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .card .description {
+      font-size: 14px;
+      color: var(--text-body);
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin-bottom: 26px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 11.5px;
+      color: var(--text-label);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .field input[type="text"],
+    .field input[type="email"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border-mid);
+      border-radius: 9px;
+      padding: 11px 14px;
+      color: #ccc;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input::placeholder { color: #444; }
+    .field input:focus { border-color: var(--accent-border); }
+
+    .error input[type="text"],
+    .error input[type="email"] { border-color: #ff5555 !important; }
+    .error > .options { box-shadow: 0 0 0 1px #ff5555; border-radius: 10px; }
+    .error-msg {
+      display: none;
+      color: #ff5555;
+      font-size: 12.5px;
+      margin-top: 8px;
+      align-items: center;
+      gap: 6px;
+    }
+    .error-msg svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .error > .error-msg { display: flex; }
+
+    /* Custom submission notification */
+    .submit-error-banner {
+      display: none;
+      background: rgba(255, 85, 85, 0.1);
+      border: 1px solid #ff5555;
+      border-radius: 9px;
+      padding: 12px;
+      margin-bottom: 20px;
+      color: #ff8888;
+      font-size: 13px;
+      align-items: center;
+      gap: 10px;
+    }
+    .submit-error-banner.visible {
+      display: flex;
+    }
+    .submit-error-banner svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .question { margin-bottom: 22px; }
+    .question-label {
+      font-size: 13.5px;
+      color: #c4b49a;
+      font-weight: 600;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .options { display: flex; flex-direction: column; gap: 7px; }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      background: #1e1e1e;
+      border: 1px solid #303030;
+      border-radius: 9px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .option:hover { border-color: var(--accent-border); background: #202020; }
+    .option input[type="radio"] { display: none; }
+    .option.selected { border-color: var(--accent-border); background: var(--accent-bg); }
+
+    .radio-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid #444;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s;
+    }
+    .option.selected .radio-dot { border-color: var(--accent-bright); }
+    .radio-dot::after {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent-bright);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .option.selected .radio-dot::after { opacity: 1; }
+    .option-text { font-size: 13.5px; color: var(--text-opt); line-height: 1.4; }
+    .option.selected .option-text { color: var(--text-selected); }
+
+    .other-wrap {
+      overflow: hidden; max-height: 0; opacity: 0;
+      transition: max-height 0.22s ease, opacity 0.2s ease, margin-top 0.2s ease;
+      margin-top: 0;
+    }
+    .other-wrap.visible { max-height: 60px; opacity: 1; margin-top: 6px; }
+    .other-wrap input {
+      width: 100%; background: #1b1b1b;
+      border: 1px solid var(--accent-border);
+      border-radius: 8px; padding: 9px 13px 9px 40px;
+      color: #ccc; font-size: 13px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .other-wrap input::placeholder { color: #4a4a4a; }
+    .other-wrap input:focus { border-color: var(--accent-bright); }
+    .other-wrap-inner { position: relative; }
+    .other-wrap-inner::before {
+      content: '↳'; position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%); color: #555; font-size: 13px; pointer-events: none;
+    }
+
+    .submit-btn {
+      width: 100%; background: #282828;
+      border: 1px solid var(--accent-border);
+      border-radius: 9px; padding: 13px; color: #aaa;
+      font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .submit-btn:hover { background: #303030; border-color: #666; color: #ddd; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn svg { width: 15px; height: 15px; }
+
+    .legal {
+      font-size: 11.5px; color: #4a4a4a;
+      line-height: 1.6; margin-top: 14px; text-align: center;
+    }
+    .legal a { color: #777; text-decoration: none; }
+    .legal a:hover { text-decoration: underline; color: #999; }
+
+    .success {
+      display: none; text-align: center; padding: 20px 0 10px;
+    }
+    .success-icon {
+      width: 48px; height: 48px; background: #222;
+      border: 1.5px solid #555; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .success h2 { font-size: 20px; color: var(--text-head); font-family: Georgia, serif; margin-bottom: 10px; }
+    .success p { font-size: 13.5px; color: #666; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<!-- Web3Forms Access Key Quick Config (Perfect for development or static testing) -->
+<div class="config-trigger" onclick="toggleConfig()" title="Configure Access Key">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+</div>
+
+<div class="config-panel" id="configPanel">
+  <h3>Web3Forms Access Key</h3>
+  <p>Paste your API access key below. Alternatively, you can change the default `DEFAULT_ACCESS_KEY` directly inside the HTML file's script.</p>
+  <input type="text" id="config-key" placeholder="YOUR_ACCESS_KEY_HERE" />
+  <button type="button" class="save-btn" onclick="saveKey()">Save Locally</button>
+</div>
+
+<div class="card">
+
+  <svg class="icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px;margin-bottom:22px;">
+    <rect x="2" y="6" width="28" height="20" rx="3" stroke="#d4c5a9" stroke-width="1.8" fill="none"/>
+    <path d="M2 9 L16 18 L30 9" stroke="#d4c5a9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+
+  <h1>Join the waitlist</h1>
+  <p class="description">
+    Be the first to know when MAGNET launches — your AI-native PC diagnostics tool.<br>
+    No spam. One email when it's ready.
+  </p>
+
+  <hr class="divider" />
+
+  <!-- Form Submission Notification Banner -->
+  <div class="submit-error-banner" id="error-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="error-banner-text">Something went wrong. Please check your fields and try again.</span>
+  </div>
+
+  <div id="form-body">
+    <!-- Web3Forms Honeypot (Spam Protection) -->
+    <input type="checkbox" id="inp-botcheck" style="display: none;" />
+
+    <div class="field" id="wrap-name">
+      <label>Name</label>
+      <input type="text" id="inp-name" placeholder="Your name" />
+      <div class="error-msg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="err-txt">Name is required.</span>
+      </div>
+    </div>
+    <div class="field" id="wrap-email" style="margin-bottom:26px;">
+      <label>Email</label>
+      <input type="email" id="inp-email" placeholder="you@example.com" />
+      <div class="error-msg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="err-txt">Email is not valid.</span>
+      </div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="question" id="wrap-q1">
+      <div class="question-label">How do you mainly use your PC?</div>
+      <div class="options" id="q1">
+        <label class="option" onclick="pick(this,'q1',false,'dev')">
+          <input type="radio" name="pc-use" value="dev" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Developer / coding</span>
+        </label>
+        <label class="option" onclick="pick(this,'q1',false,'gaming')">
+          <input type="radio" name="pc-use" value="gaming" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Gaming</span>
+        </label>
+        <label class="option" onclick="pick(this,'q1',false,'homelab')">
+          <input type="radio" name="pc-use" value="homelab" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Homelab / self-hosted servers based on Windows</span>
+        </label>
+        <label class="option" onclick="pick(this,'q1',false,'it')">
+          <input type="radio" name="pc-use" value="it" />
+          <div class="radio-dot"></div>
+          <span class="option-text">IT at a company</span>
+        </label>
+        <label class="option" onclick="pick(this,'q1',false,'power')">
+          <input type="radio" name="pc-use" value="power" />
+          <div class="radio-dot"></div>
+          <span class="option-text">General power user</span>
+        </label>
+        <label class="option" onclick="pick(this,'q1',true,'other')">
+          <input type="radio" name="pc-use" value="other" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Other</span>
+        </label>
+      </div>
+      <div class="error-msg" style="margin-top:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="err-txt">Please select an option.</span>
+      </div>
+      <div class="other-wrap" id="q1-other">
+        <div class="other-wrap-inner" id="wrap-q1-other">
+          <input type="text" id="q1-other-text" placeholder="Tell us how you use your PC…" />
+          <div class="error-msg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="err-txt">Please describe how you use your PC.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question" id="wrap-q2">
+      <div class="question-label">What's your biggest frustration with your PC right now?</div>
+      <div class="options" id="q2">
+        <label class="option" onclick="pick(this,'q2',false,'slowdown')">
+          <input type="radio" name="frustration" value="slowdown" />
+          <div class="radio-dot"></div>
+          <span class="option-text">It slows down and I don't know why</span>
+        </label>
+        <label class="option" onclick="pick(this,'q2',false,'thermal')">
+          <input type="radio" name="frustration" value="thermal" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Overheating / thermal issues</span>
+        </label>
+        <label class="option" onclick="pick(this,'q2',false,'crashes')">
+          <input type="radio" name="frustration" value="crashes" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Random crashes or BSODs</span>
+        </label>
+        <label class="option" onclick="pick(this,'q2',false,'health')">
+          <input type="radio" name="frustration" value="health" />
+          <div class="radio-dot"></div>
+          <span class="option-text">I can't tell if my hardware is healthy</span>
+        </label>
+        <label class="option" onclick="pick(this,'q2',false,'noexplain')">
+          <input type="radio" name="frustration" value="noexplain" />
+          <div class="radio-dot"></div>
+          <span class="option-text">I have monitoring tools but they don't explain anything</span>
+        </label>
+        <label class="option" onclick="pick(this,'q2',true,'other')">
+          <input type="radio" name="frustration" value="other" />
+          <div class="radio-dot"></div>
+          <span class="option-text">Other</span>
+        </label>
+      </div>
+      <div class="error-msg" style="margin-top:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="err-txt">Please select an option.</span>
+      </div>
+      <div class="other-wrap" id="q2-other">
+        <div class="other-wrap-inner" id="wrap-q2-other">
+          <input type="text" id="q2-other-text" placeholder="Describe your frustration…" />
+          <div class="error-msg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="err-txt">Please describe your frustration.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="submit-btn" id="submit-btn" onclick="submitForm()">
+      <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 7.5h11M9 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Join the waitlist
+    </button>
+
+    <p class="legal">
+      We'll only use your email to notify you about MAGNET.
+      <a href="#">Unsubscribe</a> anytime.
+    </p>
+  </div>
+
+  <!-- Success -->
+  <div class="success" id="success-msg">
+    <div class="success-icon">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 10l5 5 9-9" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>You're on the list</h2>
+    <p>Thanks for signing up. We'll reach out<br>as soon as MAGNET is ready.</p>
+  </div>
+
+</div>
+
+<script>
+  // DEFAULT CONFIGURATION: Paste your permanent Web3Forms Access Key here!
+  const DEFAULT_ACCESS_KEY = "87fedab8-60fc-476b-9703-fe4f3e56002f";
+
+  // Store selected values
+  const selected = { q1: null, q2: null };
+
+  // Set initial settings state or pull from localStorage
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem('web3forms_access_key');
+    const inputEl = document.getElementById('config-key');
+    if (savedKey) {
+      inputEl.value = savedKey;
+    } else {
+      inputEl.value = DEFAULT_ACCESS_KEY === "YOUR_ACCESS_KEY_HERE" ? "" : DEFAULT_ACCESS_KEY;
+    }
+  });
+
+  function toggleConfig() {
+    document.getElementById('configPanel').classList.toggle('visible');
+  }
+
+  function saveKey() {
+    const value = document.getElementById('config-key').value.trim();
+    if (value) {
+      localStorage.setItem('web3forms_access_key', value);
+    } else {
+      localStorage.removeItem('web3forms_access_key');
+    }
+    toggleConfig();
+  }
+
+  function getAccessKey() {
+    const savedKey = localStorage.getItem('web3forms_access_key');
+    if (savedKey) return savedKey;
+    return DEFAULT_ACCESS_KEY;
+  }
+
+  function showErrorBanner(message) {
+    const banner = document.getElementById('error-banner');
+    const text = document.getElementById('error-banner-text');
+    text.textContent = message;
+    banner.classList.add('visible');
+    // Scroll smoothly to top of card so user sees the notification
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideErrorBanner() {
+    document.getElementById('error-banner').classList.remove('visible');
+  }
+
+  function pick(el, group, isOther, value) {
+    document.querySelectorAll('#' + group + ' .option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selected[group] = value;
+
+    const wrap = document.getElementById(group + '-other');
+    if (isOther) {
+      wrap.classList.add('visible');
+      setTimeout(() => document.getElementById(group + '-other-text').focus(), 50);
+    } else {
+      wrap.classList.remove('visible');
+    }
+
+    // Clear error on selection
+    document.getElementById('wrap-' + group).classList.remove('error');
+  }
+
+  function submitForm() {
+    hideErrorBanner();
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+    const name  = document.getElementById('inp-name').value.trim();
+    const email = document.getElementById('inp-email').value.trim();
+    const botcheck = document.getElementById('inp-botcheck').checked;
+    
+    const q1Val = selected.q1;
+    const q2Val = selected.q2;
+    const q1Other = document.getElementById('q1-other-text').value.trim();
+    const q2Other = document.getElementById('q2-other-text').value.trim();
+
+    let hasError = false;
+
+    if (!name) {
+      document.getElementById('wrap-name').classList.add('error');
+      hasError = true;
+    }
+    if (!email) {
+      document.getElementById('wrap-email').querySelector('.err-txt').textContent = 'Email is required.';
+      document.getElementById('wrap-email').classList.add('error');
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('wrap-email').querySelector('.err-txt').textContent = 'Email is not valid.';
+      document.getElementById('wrap-email').classList.add('error');
+      hasError = true;
+    }
+    if (!q1Val) {
+      document.getElementById('wrap-q1').classList.add('error');
+      hasError = true;
+    } else if (q1Val === 'other' && !q1Other) {
+      document.getElementById('wrap-q1-other').classList.add('error');
+      hasError = true;
+    }
+    if (!q2Val) {
+      document.getElementById('wrap-q2').classList.add('error');
+      hasError = true;
+    } else if (q2Val === 'other' && !q2Other) {
+      document.getElementById('wrap-q2-other').classList.add('error');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    // Fetch Key
+    const accessKey = getAccessKey();
+    if (!accessKey || accessKey === "YOUR_ACCESS_KEY_HERE") {
+      showErrorBanner('Please configure a valid Web3Forms Access Key first. Click the gear icon at the top right to set your key!');
+      return;
+    }
+
+    // Disable button while submitting
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = 'Sending…';
+
+    // Prepare JSON Payload for Web3Forms
+    const payload = {
+      access_key: accessKey,
+      name: name,
+      email: email,
+      botcheck: botcheck,
+      subject: "New Waitlist Submission for MAGNET",
+      from_name: "MAGNET Landing Page",
+      "PC Use Case": q1Val === 'other' ? `Other: ${q1Other}` : q1Val,
+      "PC Frustration": q2Val === 'other' ? `Other: ${q2Other}` : q2Val
+    };
+
+    fetch("https://api.web3forms.com/submit", {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(async (res) => {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        document.getElementById('form-body').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'block';
+      } else {
+        throw new Error(data.message || 'Server returned an error');
+      }
+    })
+    .catch((err) => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none"><path d="M2 7.5h11M9 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Join the waitlist';
+      showErrorBanner('Submission failed: ' + err.message);
+    });
+  }
+</script>
+</body>
+</html>
